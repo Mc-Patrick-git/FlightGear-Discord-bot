@@ -16,7 +16,7 @@ client.on('message', (message) => {
 });
 
 // Telnet configuration
-const connection = new Telnet();
+const connection = new Telnet(); // Create an instance of Telnet
 const params = {
   host: 'mpserver01.flightgear.org',
   port: 5001,
@@ -53,4 +53,4 @@ connection.connect(params)
 });
 
 // Log in the Discord bot with the token
-client.login(
+client.login('tooken');
