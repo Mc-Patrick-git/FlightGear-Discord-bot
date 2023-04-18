@@ -1,40 +1,56 @@
-// Import the necessary modules
 const Discord = require('discord.js');
-const fetch = require('node-fetch');
+const Telnet = require('telnet-client');
 
 // Create a new Discord client
 const client = new Discord.Client();
 
-// Define the bot's ready event
-client.on('ready', () => {
-  console.log(`Logged in as ${client.user.tag}!`);
+// Set up an event listener for when the Discord client is ready
+client.once('ready', () => {
+  console.log('Discord bot is ready!');
 });
 
-// Define the bot's message event
-client.on('message', async (message) => {
-  // Check if the message starts with the desired command
-  if (message.content.startsWith('!pilotlist')) {
-    try {
-      // Fetch the pilot list information from the new endpoint
-      const response = await fetch('http://mpserver13.flightgear.org:8080/jsonpilot/');
+// Set up an event listener for receiving messages in Discord
+client.on('message', (message) => {
+  // Process the received message here
+  console.log(`Received message: ${message.content}`);
+});
 
-      // Check if the response is successful
-      if (response.ok) {
-        const data = await response.json();
-        const pilots = data.pilots; // Extract the pilots array from the response
+// Telnet configuration
+const connection = new Telnet();
+const params = {
+  host: 'mpserver01.flightgear.org',
+  port: 5001,
+  shellPrompt: '',
+  timeout: 1500,
+  negotiationMandatory: false,
+};
 
-        // Send the pilot list information as a message
-        message.channel.send(`Pilot List:\n${pilots.join('\n')}`);
-      } else {
-        // Send an error message if the response is not successful
-        message.channel.send('Failed to fetch pilot list information.');
-      }
-    } catch (error) {
-      console.error(error);
-      message.channel.send('An error occurred while fetching pilot list information.');
+// Connect to the FlightGear multiplayer server
+connection.connect(params)
+.then(() => {
+  console.log('Connected to FlightGear multiplayer server.');
+  return connection.send(`AUTH ${token}\n`);
+})
+.then(() => {
+  return connection.send('PLIST\n');
+})
+.then(data => {
+  // Format the Telnet output
+  const lines = data.split('\n');
+  for (const line of lines) {
+    const fields = line.split('@');
+    if (fields.length >= 2) {
+      const callsign = fields[0].trim();
+      const model = fields[1].trim().split(' ')[10].split('/').pop().split('.xml')[0];
+      console.log(`Callsign: ${callsign}, Model: ${model}`);
     }
   }
+  // Close the Telnet connection
+  return connection.end();
+})
+.catch(err => {
+  console.error(`Error fetching pilot list: ${err}`);
 });
 
-// Login the bot using your Discord bot token
-client.login('token');
+// Log in the Discord bot with the token
+client.login(
